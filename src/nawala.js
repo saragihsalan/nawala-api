@@ -1,12 +1,25 @@
 import axios from 'axios';
+import { HttpsProxyAgent } from 'https-proxy-agent';
+import { SocksProxyAgent } from 'socks-proxy-agent';
 import { loadConfig, cacheGet, cacheSet } from './fetcher.js';
 
 const UP = 'https://trustpositif.komdigi.go.id/Rest_server';
 const UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
 
+// Upstream hanya menerima koneksi dari IP Indonesia. Kalau PROXY_URL diisi
+// (socks5://host:port atau http://host:port), semua request lewat proxy itu.
+const PROXY_URL = process.env.PROXY_URL || '';
+function proxyAgent() {
+  if (!PROXY_URL) return null;
+  if (PROXY_URL.startsWith('socks')) return new SocksProxyAgent(PROXY_URL);
+  return new HttpsProxyAgent(PROXY_URL);
+}
+const agent = proxyAgent();
+
 const http = axios.create({
   timeout: 20000,
+  ...(agent ? { httpAgent: agent, httpsAgent: agent, proxy: false } : {}),
   headers: {
     'User-Agent': UA,
     'X-Requested-With': 'XMLHttpRequest',

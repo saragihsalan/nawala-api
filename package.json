@@ -8,11 +8,22 @@
     "start": "node src/index.js",
     "dev": "node --watch src/index.js"
   },
-  "keywords": ["nawala", "trustpositif", "komdigi", "blocklist", "internet-positif", "api"],
-  "engines": { "node": ">=20" },
+  "keywords": [
+    "nawala",
+    "trustpositif",
+    "komdigi",
+    "blocklist",
+    "internet-positif",
+    "api"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
   "dependencies": {
     "axios": "^1.7.0",
     "express": "^4.19.0",
+    "https-proxy-agent": "^9.1.0",
+    "socks-proxy-agent": "^10.1.0",
     "swagger-ui-express": "^5.0.1"
   }
 }

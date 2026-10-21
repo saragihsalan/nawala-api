@@ -9,6 +9,9 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
+      # upstream hanya menerima IP Indonesia — isi bila server di luar ID
+      # contoh: socks5://warp:1080  atau  http://proxy-host:8080
+      - PROXY_URL=${PROXY_URL:-}
     networks:
       - app-network
     healthcheck:

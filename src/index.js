@@ -45,7 +45,12 @@ const apis = [
 ];
 
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', uptime: process.uptime(), upstream: cfg.baseUrl });
+  res.json({
+    status: 'ok',
+    uptime: process.uptime(),
+    upstream: cfg.baseUrl,
+    proxy: process.env.PROXY_URL ? 'aktif' : 'tidak dipakai',
+  });
 });
 
 app.get('/api', (req, res) => {
