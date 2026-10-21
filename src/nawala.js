@@ -1,14 +1,30 @@
 import axios from 'axios';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import { SocksProxyAgent } from 'socks-proxy-agent';
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { loadConfig, cacheGet, cacheSet } from './fetcher.js';
 
-const UP = 'https://trustpositif.komdigi.go.id/Rest_server';
+const STATS_FILE = fileURLToPath(new URL('../data/stats.json', import.meta.url));
+
+function readStatsFile() {
+  try { return JSON.parse(readFileSync(STATS_FILE, 'utf8')); } catch { return null; }
+}
+
+function writeStatsFile(row) {
+  try {
+    mkdirSync(fileURLToPath(new URL('../data/', import.meta.url)), { recursive: true });
+    writeFileSync(STATS_FILE, JSON.stringify({ savedAt: new Date().toISOString(), row }, null, 2));
+  } catch { /* abaikan */ }
+}
+
+const UP_DIRECT = 'https://trustpositif.komdigi.go.id/Rest_server';
+const UP_PROXY = process.env.NAWALA_PROXY || 'https://crm.ngorder.my.id/nawala.php?p=/Rest_server';
+const UP = UP_PROXY;
 const UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
 
-// Upstream hanya menerima koneksi dari IP Indonesia. Kalau PROXY_URL diisi
-// (socks5://host:port atau http://host:port), semua request lewat proxy itu.
+// Opsional: proxy SOCKS/HTTP (mis. VPS Indonesia) bila PROXY_URL diisi.
 const PROXY_URL = process.env.PROXY_URL || '';
 function proxyAgent() {
   if (!PROXY_URL) return null;
@@ -18,8 +34,7 @@ function proxyAgent() {
 const agent = proxyAgent();
 
 const http = axios.create({
-  timeout: 20000,
-  ...(agent ? { httpAgent: agent, httpsAgent: agent, proxy: false } : {}),
+  timeout: 6000,
   headers: {
     'User-Agent': UA,
     'X-Requested-With': 'XMLHttpRequest',
@@ -86,14 +101,26 @@ async function queryUpstream(names) {
 async function queryTotals() {
   const hit = cacheGet('totals');
   if (hit) return hit;
+
   let r;
   try {
-    r = await http.get(`${UP}/gettotalrecordsperkategori`);
-  } catch (e) {
-    throw up(`upstream gagal: ${e.message}`);
+    r = await http.get(`${UP}/gettotalrecordsperkategori`, { timeout: 8000 });
+  } catch {
+    const saved = readStatsFile();
+    if (saved && saved.row) {
+      const row = { ...saved.row, __stale: true, __savedAt: saved.savedAt };
+      cacheSet('totals', row, 300);
+      return row;
+    }
+    const zeros = { lastdate: null };
+    for (const key of Object.keys(KATEGORI)) zeros[key] = 0;
+    cacheSet('totals', zeros, 120);
+    return { ...zeros, __stale: true, __unavailable: true };
   }
+
   const row = Array.isArray(r.data) ? r.data[0] : null;
   if (!row) throw up('bentuk statistik upstream tidak dikenal');
+  writeStatsFile(row);
   const ttl = loadConfig().request?.cacheTtlStats || 3600;
   cacheSet('totals', row, ttl);
   return row;
@@ -249,6 +276,8 @@ export async function getStats() {
     items.push({ slug, label, total: n });
   }
   return {
+    source: row.__unavailable ? 'unavailable' : row.__stale ? 'snapshot' : 'live',
+    savedAt: row.__savedAt || null,
     lastUpdate: row.lastdate || null,
     total: Number.isFinite(total) ? total : null,
     categories: items,
