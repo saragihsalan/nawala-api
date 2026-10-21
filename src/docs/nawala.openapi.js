@@ -1,10 +1,17 @@
 const BASE = 'https://trustpositif.komdigi.go.id';
 
-const okJson = (desc, props) => ({
+// terima dua bentuk: map properti {a: {...}} ATAU schema penuh {type, properties}
+const okJson = (desc, data) => ({
   description: desc,
   content: {
     'application/json': {
-      schema: { type: 'object', properties: { success: { type: 'boolean', example: true }, ...props } },
+      schema: {
+        type: 'object',
+        properties: {
+          success: { type: 'boolean', example: true },
+          ...(data?.type === 'object' ? data.properties : data),
+        },
+      },
     },
   },
 });
@@ -40,7 +47,7 @@ const checkResult = {
     domain: { type: 'string', description: 'Hasil normalisasi (tanpa skema/path/port, lowercase)' },
     apex: { type: 'string', description: 'Domain apex (mis. sub.contoh.co.id -> contoh.co.id)' },
     blocked: { type: 'boolean', description: 'true bila diblokir Nawala' },
-    status: { type: 'string', nullable: true, enum: ['Ada', 'Tidak Ada', null], description: 'Status mentah dari upstream' },
+    status: { type: 'string', nullable: true, enum: ['Ada', 'Tidak Ada'], description: 'Status mentah dari upstream' },
     ket: { type: 'string', nullable: true, example: 'Blocked' },
     matched: { type: 'string', nullable: true, description: 'Domain mana yang cocok di daftar blokir (domain atau apex)' },
     apexCheck: {
