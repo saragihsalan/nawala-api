@@ -1,0 +1,23 @@
+services:
+  nawala-api:
+    build: .
+    container_name: nawala-api
+    restart: unless-stopped
+    ports:
+      # host 3008 -> container 3000
+      - "3008:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+networks:
+  app-network:
+    external: true

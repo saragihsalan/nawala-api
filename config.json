@@ -1,0 +1,19 @@
+{
+  "baseUrl": "https://trustpositif.komdigi.go.id",
+  "request": {
+    "timeout": 20000,
+    "cacheTtl": 600,
+    "cacheTtlStats": 3600
+  },
+  "server": {
+    "port": 3008,
+    "host": "0.0.0.0"
+  },
+  "cache": {
+    "enabled": true,
+    "maxEntries": 5000
+  },
+  "limits": {
+    "maxDomainsPerRequest": 50
+  }
+}
